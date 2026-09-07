@@ -62,7 +62,7 @@
 
         /* --- CONTENEDOR DE TEXTOS --- */
         .text-info {
-            width: 80%; /* Muro de seguridad lateral para pantallas circulares */
+            width: 72%; /* Muro más estricto para evitar cortes curvos */
             display: flex; flex-direction: column;
             align-items: center; text-align: center;
             margin: 0; flex-shrink: 0;
@@ -73,28 +73,29 @@
             width: 100%; position: relative; overflow: hidden;
         }
         
-        /* Efecto de difuminado suave en los bordes para el texto largo */
+        /* Efecto de difuminado prematuro para suavizar orillas */
         .is-overflowing {
-            -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%);
-            mask-image: linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%);
+            -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 15%, black 85%, transparent 100%);
+            mask-image: linear-gradient(90deg, transparent 0%, black 15%, black 85%, transparent 100%);
         }
 
         .song-title, .song-artist {
             display: inline-block; 
             margin: 0; white-space: nowrap; width: max-content;
+            will-change: transform; /* Sincroniza con el GPU para 40Hz perfectos */
         }
 
         .song-title { font-weight: 700; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
         .song-artist { font-weight: 400; color: #d1d1d1; margin-top: 6px; }
 
-        /* Animación Ping-Pong */
+        /* Animación Ping-Pong Acelerada por Hardware */
         .scrolling-text {
-            animation: ping-pong var(--scroll-duration, 5s) ease-in-out infinite alternate;
+            animation: ping-pong var(--scroll-duration, 4s) ease-in-out infinite alternate;
         }
 
         @keyframes ping-pong {
-            0%, 20% { transform: translateX(0); } 
-            80%, 100% { transform: translateX(var(--scroll-dist)); } 
+            0%, 15% { transform: translate3d(0, 0, 0); } 
+            85%, 100% { transform: translate3d(var(--scroll-dist), 0, 0); } 
         }
 
         /* --- PANTALLA DE CONFIGURACIÓN --- */
@@ -117,14 +118,12 @@
 </head>
 <body>
 
-    <!-- Capas de fondo -->
     <div id="bg-blur-a" class="bg-layer active"></div>
     <div id="bg-blur-b" class="bg-layer"></div>
 
     <div class="content" id="display-content">
         <img src="https://storage.googleapis.com/pr-newsroom-wp/1/2018/11/Spotify_Logo_RGB_White.png" alt="Spotify" class="spotify-logo">
         
-        <!-- Capas de Portada -->
         <div class="album-wrapper">
             <div id="album-art-a" class="album-layer active"></div>
             <div id="album-art-b" class="album-layer"></div>
@@ -136,7 +135,6 @@
         </div>
     </div>
 
-    <!-- Menú CAM -->
     <div class="config-screen" id="config-screen" style="display:none;">
         <h2>Ajustes de la pantalla</h2>
         <div class="config-row"><label><span>Tamaño de la portada</span><span id="val-album-size">45%</span></label><input type="range" id="ctrl-album-size" min="20" max="70" value="45"></div>
@@ -185,7 +183,7 @@
             root.setProperty('--logo-size', settings.logoSize + 'px');
         }
 
-        // --- SISTEMA INTELIGENTE DE TEXTO (ENCOGER Y SCROLL) ---
+        // --- SISTEMA INTELIGENTE DE TEXTO (ENCOGER Y SCROLL ÁGIL) ---
         function autoFitAndScroll() {
             const titleEl = document.getElementById('title');
             const artistEl = document.getElementById('artist');
@@ -194,32 +192,28 @@
             const settings = loadSettings();
 
             function processText(el, requestedSize) {
-                // Resetear mediciones y estilos previos
                 el.classList.remove('scrolling-text');
                 el.parentElement.classList.remove('is-overflowing');
                 el.style.transform = 'none';
                 el.style.fontSize = requestedSize + 'rem';
                 
                 let currentSize = requestedSize;
-                const minSize = requestedSize * 0.85; // Prioriza mantener el tamaño legible, encoge poco (15%) antes de hacer scroll
+                const minSize = requestedSize * 0.85; 
                 
-                // Fase 1: Encoger ligeramente si es posible
                 while (el.scrollWidth > el.parentElement.clientWidth && currentSize > minSize) {
                     currentSize -= 0.1;
                     el.style.fontSize = currentSize + 'rem';
                 }
 
-                // Fase 2: Evaluar si sigue siendo muy largo tras encoger
                 const parentWidth = el.parentElement.clientWidth;
                 const textWidth = el.scrollWidth;
 
                 if (textWidth > parentWidth) {
-                    // Calcula cuántos píxeles sobran y activa el Ping-Pong
                     const scrollDist = parentWidth - textWidth - 5; 
                     el.style.setProperty('--scroll-dist', scrollDist + 'px');
                     
-                    // La velocidad se adapta a la longitud (texto más largo = más tiempo)
-                    const duration = 3 + (Math.abs(scrollDist) / 30);
+                    // Cálculo de velocidad mejorado (más rápido y dinámico)
+                    const duration = 1.2 + (Math.abs(scrollDist) / 50);
                     el.style.setProperty('--scroll-duration', duration + 's');
                     
                     el.parentElement.classList.add('is-overflowing');
@@ -227,7 +221,6 @@
                 }
             }
 
-            // Pequeño retraso para asegurar que las fuentes se midan correctamente
             setTimeout(() => {
                 processText(titleEl, settings.titleSize / 10);
                 processText(artistEl, settings.artistSize / 10);
@@ -250,32 +243,23 @@
             const TOKEN_WORKER_URL = 'https://spotify-token.enriqueblancolucio.workers.dev/';
             let accessToken = null;
             let tokenExpiresAt = 0;
-            
-            // Variables de Transición Cruzada
             let activeLayer = 'a';
             let currentAlbumUrl = '';
-
             const titleEl = document.getElementById('title');
             const artistEl = document.getElementById('artist');
 
-            // --- MOTOR DE TRANSICIONES CRUZADAS (CROSSFADING) ---
             function updateImagesSmoothly(newUrl) {
                 if (newUrl === currentAlbumUrl || !newUrl) return;
-                
-                // Descarga silenciosa en caché antes de mostrar
                 const preloader = new Image();
                 preloader.src = newUrl;
                 preloader.onload = () => {
                     const nextLayer = activeLayer === 'a' ? 'b' : 'a';
-                    
                     document.getElementById('album-art-' + nextLayer).style.backgroundImage = `url('${newUrl}')`;
                     document.getElementById('bg-blur-' + nextLayer).style.backgroundImage = `url('${newUrl}')`;
-                    
                     document.getElementById('album-art-' + nextLayer).classList.add('active');
                     document.getElementById('bg-blur-' + nextLayer).classList.add('active');
                     document.getElementById('album-art-' + activeLayer).classList.remove('active');
                     document.getElementById('bg-blur-' + activeLayer).classList.remove('active');
-                    
                     activeLayer = nextLayer;
                     currentAlbumUrl = newUrl;
                 };
@@ -329,7 +313,6 @@
             setInterval(getCurrentlyPlaying, 3000);
 
         } else {
-            // Lógica Menú de Ajustes
             document.getElementById('display-content').style.display = 'none';
             document.getElementById('config-screen').style.display = 'flex';
             document.getElementById('bg-blur-a').style.display = 'none';
