@@ -25,7 +25,7 @@
             overflow: hidden;
         }
 
-        /* El degradado dinámico basado en la portada */
+        /* El degradado dinámico configurable */
         #background-blur {
             position: absolute;
             top: -20%;
@@ -34,56 +34,69 @@
             height: 140%;
             background-size: cover;
             background-position: center;
-            /* Aquí ocurre la magia del degradado y el oscurecimiento */
-            filter: blur(45px) brightness(0.4) saturate(1.5);
+            filter: blur(var(--bg-blur, 45px)) brightness(var(--bg-brightness, 0.4)) saturate(1.5);
             z-index: 1;
             transition: background-image 1s ease-in-out;
         }
 
-        /* Contenedor principal para estar por encima del fondo */
+        /* Contenedor principal con sistema Anti-Colisión */
         .content {
             position: relative;
             z-index: 2;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center; 
+            gap: var(--element-gap, 6%); 
             width: 100%;
             height: 100%;
+            padding: 10%; 
         }
 
-        /* Logo de Spotify (Top Center) */
+        /* Logo de Spotify */
         .spotify-logo {
-            margin-top: 15%;
+            display: var(--logo-display, block);
+            width: var(--logo-size, 90px);
+            margin: 0;
             opacity: 0.9;
+            flex-shrink: 0;
         }
 
-        /* Contenedor de la Portada */
+        /* Contenedor de la Portada Auto-Ajustable */
         .album-art {
-            margin-top: var(--album-margin-top, 5%);
             width: var(--album-size, 45%);
+            max-width: 65%; 
             aspect-ratio: 1 / 1;
             background-size: cover;
             background-position: center;
-            /* Bordes medio redondeados como pediste */
             border-radius: var(--album-radius, 18px);
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            margin: 0;
             transition: background-image 1s ease-in-out;
+            flex-shrink: 1; 
         }
 
         /* Contenedor de Textos */
         .text-info {
-            margin-top: var(--text-margin-top, 8%);
-            width: 80%;
+            width: 95%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             text-align: center;
+            margin: 0;
+            flex-shrink: 0;
+        }
+
+        .song-title, .song-artist {
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            width: 100%;
         }
 
         .song-title {
             font-size: var(--title-size, 1.6rem);
             font-weight: 700;
-            margin: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
             text-shadow: 0 2px 5px rgba(0,0,0,0.5);
         }
 
@@ -91,15 +104,7 @@
             font-size: var(--artist-size, 1.1rem);
             font-weight: 400;
             color: #d1d1d1;
-            margin: 6px 0 0 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .spotify-logo {
-            display: var(--logo-display, block);
-            width: var(--logo-size, 90px);
+            margin-top: 6px;
         }
 
         /* --- Pantalla de configuración (Configuration Browser) --- */
@@ -111,8 +116,10 @@
             padding: 24px;
             display: flex;
             flex-direction: column;
-            gap: 18px;
+            gap: 16px;
             font-family: 'Inter', sans-serif;
+            overflow-y: auto;
+            max-height: 100vh;
         }
 
         .config-screen h2 {
@@ -123,13 +130,13 @@
         .config-row {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 4px;
         }
 
         .config-row label {
             display: flex;
             justify-content: space-between;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: #d1d1d1;
         }
 
@@ -163,9 +170,7 @@
 
     <div class="content" id="display-content">
         <img src="https://storage.googleapis.com/pr-newsroom-wp/1/2018/11/Spotify_Logo_RGB_White.png" alt="Spotify" class="spotify-logo" id="logo-img">
-        
         <div class="album-art" id="album-art"></div>
-        
         <div class="text-info">
             <p class="song-title" id="title">Cargando...</p>
             <p class="song-artist" id="artist">Conectando a Spotify</p>
@@ -181,31 +186,36 @@
         </div>
 
         <div class="config-row">
-            <label><span>Posición vertical de la portada</span><span id="val-album-margin">5%</span></label>
-            <input type="range" id="ctrl-album-margin" min="0" max="30" value="5">
-        </div>
-
-        <div class="config-row">
             <label><span>Redondeo de bordes</span><span id="val-album-radius">18px</span></label>
             <input type="range" id="ctrl-album-radius" min="0" max="60" value="18">
         </div>
 
         <div class="config-row">
-            <label><span>Espacio antes del texto</span><span id="val-text-margin">8%</span></label>
-            <input type="range" id="ctrl-text-margin" min="0" max="30" value="8">
+            <label><span>Espaciado entre elementos</span><span id="val-element-gap">6%</span></label>
+            <input type="range" id="ctrl-element-gap" min="0" max="20" value="6">
         </div>
 
         <div class="config-row">
             <label><span>Tamaño del título</span><span id="val-title-size">1.6rem</span></label>
-            <input type="range" id="ctrl-title-size" min="10" max="30" value="16">
+            <input type="range" id="ctrl-title-size" min="10" max="35" value="16">
         </div>
 
         <div class="config-row">
             <label><span>Tamaño del artista</span><span id="val-artist-size">1.1rem</span></label>
             <input type="range" id="ctrl-artist-size" min="8" max="24" value="11">
         </div>
+        
+        <div class="config-row">
+            <label><span>Desenfoque del fondo</span><span id="val-bg-blur">45px</span></label>
+            <input type="range" id="ctrl-bg-blur" min="0" max="100" value="45">
+        </div>
+        
+        <div class="config-row">
+            <label><span>Brillo del fondo</span><span id="val-bg-brightness">40%</span></label>
+            <input type="range" id="ctrl-bg-brightness" min="10" max="100" value="40">
+        </div>
 
-        <div class="config-row" style="flex-direction: row; align-items: center; justify-content: space-between;">
+        <div class="config-row" style="flex-direction: row; align-items: center; justify-content: space-between; margin-top: 8px;">
             <span>Mostrar logo de Spotify</span>
             <input type="checkbox" id="ctrl-logo" checked>
         </div>
@@ -221,20 +231,20 @@
     </div>
 
     <script>
-        // --- DETECCIÓN DE MODO (Kraken Browser vs Configuration Browser) ---
         const params = new URLSearchParams(window.location.search);
         const isKraken = params.get('kraken') === '1';
 
         const CONFIG_KEY = 'kraken_display_settings';
         const DEFAULT_SETTINGS = {
-            albumSize: 45,      // %
-            albumMargin: 5,     // %
-            albumRadius: 18,    // px
-            textMargin: 8,      // %
-            titleSize: 16,      // (x0.1rem -> 1.6rem)
-            artistSize: 11,     // (x0.1rem -> 1.1rem)
+            albumSize: 45,      
+            albumRadius: 18,    
+            elementGap: 6,      
+            titleSize: 16,      
+            artistSize: 11,     
+            bgBlur: 45,
+            bgBrightness: 40,
             showLogo: true,
-            logoSize: 90        // px
+            logoSize: 90        
         };
 
         function loadSettings() {
@@ -251,39 +261,58 @@
             localStorage.setItem(CONFIG_KEY, JSON.stringify(settings));
         }
 
-        // Aplica los ajustes como variables CSS al elemento raíz
         function applySettings(settings) {
             const root = document.documentElement.style;
             root.setProperty('--album-size', settings.albumSize + '%');
-            root.setProperty('--album-margin-top', settings.albumMargin + '%');
             root.setProperty('--album-radius', settings.albumRadius + 'px');
-            root.setProperty('--text-margin-top', settings.textMargin + '%');
+            root.setProperty('--element-gap', settings.elementGap + '%');
             root.setProperty('--title-size', (settings.titleSize / 10) + 'rem');
             root.setProperty('--artist-size', (settings.artistSize / 10) + 'rem');
+            root.setProperty('--bg-blur', settings.bgBlur + 'px');
+            root.setProperty('--bg-brightness', (settings.bgBrightness / 100));
             root.setProperty('--logo-display', settings.showLogo ? 'block' : 'none');
             root.setProperty('--logo-size', settings.logoSize + 'px');
         }
 
+        // --- Función para encoger el texto dinámicamente si no cabe ---
+        function autoFitText() {
+            const titleEl = document.getElementById('title');
+            const artistEl = document.getElementById('artist');
+            if (!titleEl || !artistEl) return;
+
+            const settings = loadSettings();
+            const reqTitleSize = settings.titleSize / 10;
+            const reqArtistSize = settings.artistSize / 10;
+
+            function fit(el, requestedSize) {
+                el.style.fontSize = requestedSize + 'rem';
+                let currentSize = requestedSize;
+                while (el.scrollWidth > el.clientWidth && currentSize > 0.5) {
+                    currentSize -= 0.1;
+                    el.style.fontSize = currentSize + 'rem';
+                }
+            }
+
+            setTimeout(() => {
+                fit(titleEl, reqTitleSize);
+                fit(artistEl, reqArtistSize);
+            }, 50);
+        }
+
         if (isKraken) {
-            // ================= MODO PANTALLA (lo que se ve en el LCD) =================
             document.getElementById('config-screen').style.display = 'none';
             document.getElementById('display-content').style.display = 'flex';
 
-            // Aplica ajustes guardados al cargar
             applySettings(loadSettings());
 
-            // Escucha cambios en vivo mientras alguien ajusta la Configuration Browser
             window.addEventListener('storage', (event) => {
                 if (event.key === CONFIG_KEY) {
                     applySettings(loadSettings());
+                    autoFitText();
                 }
             });
 
-            // --- CONFIGURACIÓN DE SPOTIFY ---
-            // Ya NO hay claves aquí. El Worker de Cloudflare las guarda en secreto
-            // y solo nos entrega un access_token fresco cuando se lo pedimos.
             const TOKEN_WORKER_URL = 'https://spotify-token.enriqueblancolucio.workers.dev/';
-
             let accessToken = null;
             let tokenExpiresAt = 0;
 
@@ -299,8 +328,6 @@
                     if (data.access_token) {
                         accessToken = data.access_token;
                         tokenExpiresAt = Date.now() + (data.expires_in - 60) * 1000;
-                    } else {
-                        console.log("Error renovando token", data);
                     }
                 } catch (error) {
                     console.log("Error de red renovando token", error);
@@ -332,10 +359,13 @@
                         const artistName = data.item.artists.map(a => a.name).join(', ');
                         const albumImage = data.item.album.images[0].url;
 
-                        titleEl.innerText = songTitle;
-                        artistEl.innerText = artistName;
-                        albumArt.style.backgroundImage = `url('${albumImage}')`;
-                        bgBlur.style.backgroundImage = `url('${albumImage}')`;
+                        if (titleEl.innerText !== songTitle) {
+                            titleEl.innerText = songTitle;
+                            artistEl.innerText = artistName;
+                            albumArt.style.backgroundImage = `url('${albumImage}')`;
+                            bgBlur.style.backgroundImage = `url('${albumImage}')`;
+                            autoFitText(); // Ajusta letras nuevas
+                        }
                     }
                 } catch (error) {
                     console.log("Error consultando Spotify", error);
@@ -346,7 +376,6 @@
             setInterval(getCurrentlyPlaying, 3000);
 
         } else {
-            // ================= MODO CONFIGURACIÓN (lo que ves al presionar "Configure") =================
             document.getElementById('display-content').style.display = 'none';
             document.getElementById('config-screen').style.display = 'flex';
             document.getElementById('background-blur').style.display = 'none';
@@ -355,42 +384,45 @@
 
             const controls = {
                 albumSize: document.getElementById('ctrl-album-size'),
-                albumMargin: document.getElementById('ctrl-album-margin'),
                 albumRadius: document.getElementById('ctrl-album-radius'),
-                textMargin: document.getElementById('ctrl-text-margin'),
+                elementGap: document.getElementById('ctrl-element-gap'),
                 titleSize: document.getElementById('ctrl-title-size'),
                 artistSize: document.getElementById('ctrl-artist-size'),
+                bgBlur: document.getElementById('ctrl-bg-blur'),
+                bgBrightness: document.getElementById('ctrl-bg-brightness'),
                 showLogo: document.getElementById('ctrl-logo'),
                 logoSize: document.getElementById('ctrl-logo-size')
             };
 
             const labels = {
                 albumSize: document.getElementById('val-album-size'),
-                albumMargin: document.getElementById('val-album-margin'),
                 albumRadius: document.getElementById('val-album-radius'),
-                textMargin: document.getElementById('val-text-margin'),
+                elementGap: document.getElementById('val-element-gap'),
                 titleSize: document.getElementById('val-title-size'),
                 artistSize: document.getElementById('val-artist-size'),
+                bgBlur: document.getElementById('val-bg-blur'),
+                bgBrightness: document.getElementById('val-bg-brightness'),
                 logoSize: document.getElementById('val-logo-size')
             };
 
             function refreshLabels(s) {
                 labels.albumSize.innerText = s.albumSize + '%';
-                labels.albumMargin.innerText = s.albumMargin + '%';
                 labels.albumRadius.innerText = s.albumRadius + 'px';
-                labels.textMargin.innerText = s.textMargin + '%';
+                labels.elementGap.innerText = s.elementGap + '%';
                 labels.titleSize.innerText = (s.titleSize / 10) + 'rem';
                 labels.artistSize.innerText = (s.artistSize / 10) + 'rem';
+                labels.bgBlur.innerText = s.bgBlur + 'px';
+                labels.bgBrightness.innerText = s.bgBrightness + '%';
                 labels.logoSize.innerText = s.logoSize + 'px';
             }
 
-            // Inicializa los controles con los valores guardados
             controls.albumSize.value = settings.albumSize;
-            controls.albumMargin.value = settings.albumMargin;
             controls.albumRadius.value = settings.albumRadius;
-            controls.textMargin.value = settings.textMargin;
+            controls.elementGap.value = settings.elementGap;
             controls.titleSize.value = settings.titleSize;
             controls.artistSize.value = settings.artistSize;
+            controls.bgBlur.value = settings.bgBlur;
+            controls.bgBrightness.value = settings.bgBrightness;
             controls.showLogo.checked = settings.showLogo;
             controls.logoSize.value = settings.logoSize;
             refreshLabels(settings);
@@ -398,18 +430,17 @@
             function currentValues() {
                 return {
                     albumSize: Number(controls.albumSize.value),
-                    albumMargin: Number(controls.albumMargin.value),
                     albumRadius: Number(controls.albumRadius.value),
-                    textMargin: Number(controls.textMargin.value),
+                    elementGap: Number(controls.elementGap.value),
                     titleSize: Number(controls.titleSize.value),
                     artistSize: Number(controls.artistSize.value),
+                    bgBlur: Number(controls.bgBlur.value),
+                    bgBrightness: Number(controls.bgBrightness.value),
                     showLogo: controls.showLogo.checked,
                     logoSize: Number(controls.logoSize.value)
                 };
             }
 
-            // Al mover cualquier control: solo actualiza etiquetas y GUARDA en vivo
-            // (esto es lo que ya probaste y funciona para ver el cambio reflejado al instante)
             function handleLiveChange() {
                 const updated = currentValues();
                 refreshLabels(updated);
@@ -420,7 +451,6 @@
                 ctrl.addEventListener('input', handleLiveChange);
             });
 
-            // Botón "Guardar cambios": vuelve a guardar explícitamente y muestra confirmación
             const saveConfirm = document.getElementById('save-confirm');
             document.getElementById('btn-save').addEventListener('click', () => {
                 saveSettings(currentValues());
@@ -430,11 +460,12 @@
 
             document.getElementById('btn-reset').addEventListener('click', () => {
                 controls.albumSize.value = DEFAULT_SETTINGS.albumSize;
-                controls.albumMargin.value = DEFAULT_SETTINGS.albumMargin;
                 controls.albumRadius.value = DEFAULT_SETTINGS.albumRadius;
-                controls.textMargin.value = DEFAULT_SETTINGS.textMargin;
+                controls.elementGap.value = DEFAULT_SETTINGS.elementGap;
                 controls.titleSize.value = DEFAULT_SETTINGS.titleSize;
                 controls.artistSize.value = DEFAULT_SETTINGS.artistSize;
+                controls.bgBlur.value = DEFAULT_SETTINGS.bgBlur;
+                controls.bgBrightness.value = DEFAULT_SETTINGS.bgBrightness;
                 controls.showLogo.checked = DEFAULT_SETTINGS.showLogo;
                 controls.logoSize.value = DEFAULT_SETTINGS.logoSize;
                 handleLiveChange();
