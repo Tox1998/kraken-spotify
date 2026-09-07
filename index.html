@@ -3,228 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spotify Kraken Display</title>
+    <title>Spotify Kraken Display Premium</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     
     <style>
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
         body {
-            margin: 0;
-            padding: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: #121212;
-            color: white;
+            margin: 0; padding: 0; width: 100vw; height: 100vh;
+            background-color: #121212; color: white;
             font-family: 'Inter', sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
             overflow: hidden;
         }
 
-        /* El degradado dinámico configurable */
-        #background-blur {
-            position: absolute;
-            top: -20%;
-            left: -20%;
-            width: 140%;
-            height: 140%;
-            background-size: cover;
-            background-position: center;
+        /* --- DOBLE CAPA DE FONDO --- */
+        .bg-layer {
+            position: absolute; top: -20%; left: -20%; width: 140%; height: 140%;
+            background-size: cover; background-position: center;
             filter: blur(var(--bg-blur, 45px)) brightness(var(--bg-brightness, 0.4)) saturate(1.5);
-            z-index: 1;
-            transition: background-image 1s ease-in-out;
+            transition: opacity 1.5s ease-in-out;
+            opacity: 0; z-index: 1;
         }
+        .bg-layer.active { opacity: 1; }
 
-        /* Contenedor principal con sistema Anti-Colisión */
+        /* Contenedor principal */
         .content {
-            position: relative;
-            z-index: 2;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center; 
+            position: relative; z-index: 2;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; 
             gap: var(--element-gap, 6%); 
-            width: 100%;
-            height: 100%;
-            padding: 10%; 
+            width: 100%; height: 100%; padding: 10%; 
         }
 
-        /* Logo de Spotify */
         .spotify-logo {
             display: var(--logo-display, block);
             width: var(--logo-size, 90px);
-            margin: 0;
-            opacity: 0.9;
-            flex-shrink: 0;
+            margin: 0; opacity: 0.9; flex-shrink: 0;
         }
 
-        /* Contenedor de la Portada Auto-Ajustable */
-        .album-art {
+        /* --- DOBLE CAPA DE PORTADA --- */
+        .album-wrapper {
             width: var(--album-size, 45%);
-            max-width: 65%; 
-            aspect-ratio: 1 / 1;
-            background-size: cover;
-            background-position: center;
+            max-width: 65%; aspect-ratio: 1 / 1;
+            position: relative;
             border-radius: var(--album-radius, 18px);
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
-            margin: 0;
-            transition: background-image 1s ease-in-out;
             flex-shrink: 1; 
+            overflow: hidden; /* Mantiene los bordes redondeados al hacer transición */
+        }
+        .album-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-size: cover; background-position: center;
+            transition: opacity 1s ease-in-out;
+            opacity: 0;
+        }
+        .album-layer.active { opacity: 1; }
+
+        /* --- CONTENEDOR DE TEXTOS TEXTOS --- */
+        .text-info {
+            width: 95%; display: flex; flex-direction: column;
+            align-items: center; text-align: center;
+            margin: 0; flex-shrink: 0;
         }
 
-        /* Contenedor de Textos */
-        .text-info {
-            width: 95%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            margin: 0;
-            flex-shrink: 0;
+        /* Ventana que oculta el texto excedente */
+        .text-window {
+            width: 100%; position: relative; overflow: hidden;
+        }
+        
+        /* Efecto de difuminado en los bordes cuando el texto hace scroll */
+        .is-overflowing {
+            -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 5%, black 95%, transparent 100%);
+            mask-image: linear-gradient(90deg, transparent 0%, black 5%, black 95%, transparent 100%);
         }
 
         .song-title, .song-artist {
-            margin: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            width: 100%;
+            display: inline-block; /* Requerido para medir y animar */
+            margin: 0; white-space: nowrap; width: max-content;
         }
 
-        .song-title {
-            font-size: var(--title-size, 1.6rem);
-            font-weight: 700;
-            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        .song-title { font-weight: 700; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .song-artist { font-weight: 400; color: #d1d1d1; margin-top: 6px; }
+
+        /* Animación Ping-Pong */
+        .scrolling-text {
+            animation: ping-pong var(--scroll-duration, 5s) ease-in-out infinite alternate;
         }
 
-        .song-artist {
-            font-size: var(--artist-size, 1.1rem);
-            font-weight: 400;
-            color: #d1d1d1;
-            margin-top: 6px;
+        @keyframes ping-pong {
+            0%, 20% { transform: translateX(0); } /* Pausa al inicio */
+            80%, 100% { transform: translateX(var(--scroll-dist)); } /* Desliza y pausa al final */
         }
 
-        /* --- Pantalla de configuración (Configuration Browser) --- */
+        /* --- PANTALLA DE CONFIGURACIÓN --- */
         .config-screen {
-            position: relative;
-            z-index: 3;
-            width: 100%;
-            max-width: 420px;
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            font-family: 'Inter', sans-serif;
-            overflow-y: auto;
-            max-height: 100vh;
+            position: relative; z-index: 3; width: 100%; max-width: 420px;
+            padding: 24px; display: flex; flex-direction: column; gap: 16px;
+            font-family: 'Inter', sans-serif; overflow-y: auto; max-height: 100vh;
         }
-
-        .config-screen h2 {
-            margin: 0 0 4px 0;
-            font-size: 1.3rem;
-        }
-
-        .config-row {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .config-row label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85rem;
-            color: #d1d1d1;
-        }
-
-        .config-row input[type="range"] {
-            width: 100%;
-        }
-
-        .config-row input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-        }
-
+        .config-screen h2 { margin: 0 0 4px 0; font-size: 1.3rem; }
+        .config-row { display: flex; flex-direction: column; gap: 4px; }
+        .config-row label { display: flex; justify-content: space-between; font-size: 0.85rem; color: #d1d1d1; }
+        .config-row input[type="range"] { width: 100%; }
+        .config-row input[type="checkbox"] { width: 18px; height: 18px; }
         .config-reset {
-            margin-top: 8px;
-            background: #1DB954;
-            color: black;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 14px;
-            font-weight: 700;
-            cursor: pointer;
+            margin-top: 8px; background: #1DB954; color: black; border: none;
+            border-radius: 8px; padding: 10px 14px; font-weight: 700; cursor: pointer;
         }
-        .config-reset:hover {
-            opacity: 0.9;
-        }
+        .config-reset:hover { opacity: 0.9; }
     </style>
 </head>
 <body>
 
-    <div id="background-blur"></div>
+    <!-- Capas de fondo -->
+    <div id="bg-blur-a" class="bg-layer active"></div>
+    <div id="bg-blur-b" class="bg-layer"></div>
 
     <div class="content" id="display-content">
-        <img src="https://storage.googleapis.com/pr-newsroom-wp/1/2018/11/Spotify_Logo_RGB_White.png" alt="Spotify" class="spotify-logo" id="logo-img">
-        <div class="album-art" id="album-art"></div>
+        <img src="https://storage.googleapis.com/pr-newsroom-wp/1/2018/11/Spotify_Logo_RGB_White.png" alt="Spotify" class="spotify-logo">
+        
+        <!-- Capas de Portada -->
+        <div class="album-wrapper">
+            <div id="album-art-a" class="album-layer active"></div>
+            <div id="album-art-b" class="album-layer"></div>
+        </div>
+        
         <div class="text-info">
-            <p class="song-title" id="title">Cargando...</p>
-            <p class="song-artist" id="artist">Conectando a Spotify</p>
+            <div class="text-window"><p class="song-title" id="title">Cargando...</p></div>
+            <div class="text-window"><p class="song-artist" id="artist">Conectando a Spotify</p></div>
         </div>
     </div>
 
+    <!-- Menú CAM -->
     <div class="config-screen" id="config-screen" style="display:none;">
         <h2>Ajustes de la pantalla</h2>
-
-        <div class="config-row">
-            <label><span>Tamaño de la portada</span><span id="val-album-size">45%</span></label>
-            <input type="range" id="ctrl-album-size" min="20" max="70" value="45">
-        </div>
-
-        <div class="config-row">
-            <label><span>Redondeo de bordes</span><span id="val-album-radius">18px</span></label>
-            <input type="range" id="ctrl-album-radius" min="0" max="60" value="18">
-        </div>
-
-        <div class="config-row">
-            <label><span>Espaciado entre elementos</span><span id="val-element-gap">6%</span></label>
-            <input type="range" id="ctrl-element-gap" min="0" max="20" value="6">
-        </div>
-
-        <div class="config-row">
-            <label><span>Tamaño del título</span><span id="val-title-size">1.6rem</span></label>
-            <input type="range" id="ctrl-title-size" min="10" max="35" value="16">
-        </div>
-
-        <div class="config-row">
-            <label><span>Tamaño del artista</span><span id="val-artist-size">1.1rem</span></label>
-            <input type="range" id="ctrl-artist-size" min="8" max="24" value="11">
-        </div>
-        
-        <div class="config-row">
-            <label><span>Desenfoque del fondo</span><span id="val-bg-blur">45px</span></label>
-            <input type="range" id="ctrl-bg-blur" min="0" max="100" value="45">
-        </div>
-        
-        <div class="config-row">
-            <label><span>Brillo del fondo</span><span id="val-bg-brightness">40%</span></label>
-            <input type="range" id="ctrl-bg-brightness" min="10" max="100" value="40">
-        </div>
-
-        <div class="config-row" style="flex-direction: row; align-items: center; justify-content: space-between; margin-top: 8px;">
-            <span>Mostrar logo de Spotify</span>
-            <input type="checkbox" id="ctrl-logo" checked>
-        </div>
-
-        <div class="config-row">
-            <label><span>Tamaño del logo</span><span id="val-logo-size">90px</span></label>
-            <input type="range" id="ctrl-logo-size" min="40" max="160" value="90">
-        </div>
-
+        <div class="config-row"><label><span>Tamaño de la portada</span><span id="val-album-size">45%</span></label><input type="range" id="ctrl-album-size" min="20" max="70" value="45"></div>
+        <div class="config-row"><label><span>Redondeo de bordes</span><span id="val-album-radius">18px</span></label><input type="range" id="ctrl-album-radius" min="0" max="60" value="18"></div>
+        <div class="config-row"><label><span>Espaciado entre elementos</span><span id="val-element-gap">6%</span></label><input type="range" id="ctrl-element-gap" min="0" max="20" value="6"></div>
+        <div class="config-row"><label><span>Tamaño del título</span><span id="val-title-size">1.6rem</span></label><input type="range" id="ctrl-title-size" min="10" max="35" value="16"></div>
+        <div class="config-row"><label><span>Tamaño del artista</span><span id="val-artist-size">1.1rem</span></label><input type="range" id="ctrl-artist-size" min="8" max="24" value="11"></div>
+        <div class="config-row"><label><span>Desenfoque del fondo</span><span id="val-bg-blur">45px</span></label><input type="range" id="ctrl-bg-blur" min="0" max="100" value="45"></div>
+        <div class="config-row"><label><span>Brillo del fondo</span><span id="val-bg-brightness">40%</span></label><input type="range" id="ctrl-bg-brightness" min="10" max="100" value="40"></div>
+        <div class="config-row" style="flex-direction: row; align-items: center; justify-content: space-between; margin-top: 8px;"><span>Mostrar logo de Spotify</span><input type="checkbox" id="ctrl-logo" checked></div>
+        <div class="config-row"><label><span>Tamaño del logo</span><span id="val-logo-size">90px</span></label><input type="range" id="ctrl-logo-size" min="40" max="160" value="90"></div>
         <button class="config-reset" id="btn-save" style="background:#3b82f6; color:white;">Guardar cambios</button>
         <button class="config-reset" id="btn-reset">Restaurar valores por defecto</button>
         <p id="save-confirm" style="text-align:center; color:#1DB954; font-size:0.85rem; height:16px; margin:0;"></p>
@@ -233,33 +155,21 @@
     <script>
         const params = new URLSearchParams(window.location.search);
         const isKraken = params.get('kraken') === '1';
-
         const CONFIG_KEY = 'kraken_display_settings';
+
         const DEFAULT_SETTINGS = {
-            albumSize: 45,      
-            albumRadius: 18,    
-            elementGap: 6,      
-            titleSize: 16,      
-            artistSize: 11,     
-            bgBlur: 45,
-            bgBrightness: 40,
-            showLogo: true,
-            logoSize: 90        
+            albumSize: 45, albumRadius: 18, elementGap: 6, titleSize: 16, artistSize: 11,
+            bgBlur: 45, bgBrightness: 40, showLogo: true, logoSize: 90        
         };
 
         function loadSettings() {
             try {
                 const raw = localStorage.getItem(CONFIG_KEY);
-                if (!raw) return { ...DEFAULT_SETTINGS };
-                return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
-            } catch (e) {
-                return { ...DEFAULT_SETTINGS };
-            }
+                return raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : { ...DEFAULT_SETTINGS };
+            } catch (e) { return { ...DEFAULT_SETTINGS }; }
         }
 
-        function saveSettings(settings) {
-            localStorage.setItem(CONFIG_KEY, JSON.stringify(settings));
-        }
+        function saveSettings(settings) { localStorage.setItem(CONFIG_KEY, JSON.stringify(settings)); }
 
         function applySettings(settings) {
             const root = document.documentElement.style;
@@ -274,30 +184,55 @@
             root.setProperty('--logo-size', settings.logoSize + 'px');
         }
 
-        // --- Función para encoger el texto dinámicamente si no cabe ---
-        function autoFitText() {
+        // --- SISTEMA INTELIGENTE DE TEXTO (ENCOGER Y SCROLL) ---
+        function autoFitAndScroll() {
             const titleEl = document.getElementById('title');
             const artistEl = document.getElementById('artist');
             if (!titleEl || !artistEl) return;
 
             const settings = loadSettings();
-            const reqTitleSize = settings.titleSize / 10;
-            const reqArtistSize = settings.artistSize / 10;
 
-            function fit(el, requestedSize) {
+            function processText(el, requestedSize) {
+                // Resetear mediciones y estilos previos
+                el.classList.remove('scrolling-text');
+                el.parentElement.classList.remove('is-overflowing');
+                el.style.transform = 'none';
                 el.style.fontSize = requestedSize + 'rem';
+                
                 let currentSize = requestedSize;
-                while (el.scrollWidth > el.clientWidth && currentSize > 0.5) {
+                const minSize = requestedSize * 0.70; // Solo encoge hasta un 30% como máximo
+                
+                // Fase 1: Encoger ligeramente si es posible
+                while (el.scrollWidth > el.parentElement.clientWidth && currentSize > minSize) {
                     currentSize -= 0.1;
                     el.style.fontSize = currentSize + 'rem';
                 }
+
+                // Fase 2: Evaluar si sigue siendo muy largo tras encoger
+                const parentWidth = el.parentElement.clientWidth;
+                const textWidth = el.scrollWidth;
+
+                if (textWidth > parentWidth) {
+                    // Calcula cuántos píxeles sobran y activa el Ping-Pong
+                    const scrollDist = parentWidth - textWidth - 5; 
+                    el.style.setProperty('--scroll-dist', scrollDist + 'px');
+                    
+                    // La velocidad se adapta a la longitud (texto más largo = más tiempo)
+                    const duration = 3 + (Math.abs(scrollDist) / 30);
+                    el.style.setProperty('--scroll-duration', duration + 's');
+                    
+                    el.parentElement.classList.add('is-overflowing');
+                    el.classList.add('scrolling-text');
+                }
             }
 
+            // Pequeño retraso para asegurar que las fuentes se midan correctamente
             setTimeout(() => {
-                fit(titleEl, reqTitleSize);
-                fit(artistEl, reqArtistSize);
+                processText(titleEl, settings.titleSize / 10);
+                processText(artistEl, settings.artistSize / 10);
             }, 50);
         }
+
 
         if (isKraken) {
             document.getElementById('config-screen').style.display = 'none';
@@ -308,18 +243,45 @@
             window.addEventListener('storage', (event) => {
                 if (event.key === CONFIG_KEY) {
                     applySettings(loadSettings());
-                    autoFitText();
+                    autoFitAndScroll();
                 }
             });
 
             const TOKEN_WORKER_URL = 'https://spotify-token.enriqueblancolucio.workers.dev/';
             let accessToken = null;
             let tokenExpiresAt = 0;
+            
+            // Variables de Transición Cruzada
+            let activeLayer = 'a';
+            let currentAlbumUrl = '';
 
-            const bgBlur = document.getElementById('background-blur');
-            const albumArt = document.getElementById('album-art');
             const titleEl = document.getElementById('title');
             const artistEl = document.getElementById('artist');
+
+            // --- MOTOR DE TRANSICIONES CRUZADAS (CROSSFADING) ---
+            function updateImagesSmoothly(newUrl) {
+                if (newUrl === currentAlbumUrl || !newUrl) return;
+                
+                // Descarga silenciosa en caché antes de mostrar
+                const preloader = new Image();
+                preloader.src = newUrl;
+                preloader.onload = () => {
+                    const nextLayer = activeLayer === 'a' ? 'b' : 'a';
+                    
+                    // Prepara las imágenes en las capas ocultas
+                    document.getElementById('album-art-' + nextLayer).style.backgroundImage = `url('${newUrl}')`;
+                    document.getElementById('bg-blur-' + nextLayer).style.backgroundImage = `url('${newUrl}')`;
+                    
+                    // Ejecuta el fundido (fade)
+                    document.getElementById('album-art-' + nextLayer).classList.add('active');
+                    document.getElementById('bg-blur-' + nextLayer).classList.add('active');
+                    document.getElementById('album-art-' + activeLayer).classList.remove('active');
+                    document.getElementById('bg-blur-' + activeLayer).classList.remove('active');
+                    
+                    activeLayer = nextLayer;
+                    currentAlbumUrl = newUrl;
+                };
+            }
 
             async function refreshAccessToken() {
                 try {
@@ -329,15 +291,11 @@
                         accessToken = data.access_token;
                         tokenExpiresAt = Date.now() + (data.expires_in - 60) * 1000;
                     }
-                } catch (error) {
-                    console.log("Error de red renovando token", error);
-                }
+                } catch (error) { console.log(error); }
             }
 
             async function ensureValidToken() {
-                if (!accessToken || Date.now() >= tokenExpiresAt) {
-                    await refreshAccessToken();
-                }
+                if (!accessToken || Date.now() >= tokenExpiresAt) await refreshAccessToken();
             }
 
             async function getCurrentlyPlaying() {
@@ -362,26 +320,24 @@
                         if (titleEl.innerText !== songTitle) {
                             titleEl.innerText = songTitle;
                             artistEl.innerText = artistName;
-                            albumArt.style.backgroundImage = `url('${albumImage}')`;
-                            bgBlur.style.backgroundImage = `url('${albumImage}')`;
-                            autoFitText(); // Ajusta letras nuevas
+                            updateImagesSmoothly(albumImage); // Detona la transición
+                            autoFitAndScroll(); // Calcula si el texto necesita deslizarse
                         }
                     }
-                } catch (error) {
-                    console.log("Error consultando Spotify", error);
-                }
+                } catch (error) { console.log(error); }
             }
 
             getCurrentlyPlaying();
             setInterval(getCurrentlyPlaying, 3000);
 
         } else {
+            // Lógica Menú de Ajustes
             document.getElementById('display-content').style.display = 'none';
             document.getElementById('config-screen').style.display = 'flex';
-            document.getElementById('background-blur').style.display = 'none';
+            document.getElementById('bg-blur-a').style.display = 'none';
+            document.getElementById('bg-blur-b').style.display = 'none';
 
             const settings = loadSettings();
-
             const controls = {
                 albumSize: document.getElementById('ctrl-album-size'),
                 albumRadius: document.getElementById('ctrl-album-radius'),
@@ -427,8 +383,8 @@
             controls.logoSize.value = settings.logoSize;
             refreshLabels(settings);
 
-            function currentValues() {
-                return {
+            function handleLiveChange() {
+                const updated = {
                     albumSize: Number(controls.albumSize.value),
                     albumRadius: Number(controls.albumRadius.value),
                     elementGap: Number(controls.elementGap.value),
@@ -439,21 +395,15 @@
                     showLogo: controls.showLogo.checked,
                     logoSize: Number(controls.logoSize.value)
                 };
-            }
-
-            function handleLiveChange() {
-                const updated = currentValues();
                 refreshLabels(updated);
                 saveSettings(updated);
             }
 
-            Object.values(controls).forEach(ctrl => {
-                ctrl.addEventListener('input', handleLiveChange);
-            });
+            Object.values(controls).forEach(ctrl => ctrl.addEventListener('input', handleLiveChange));
 
             const saveConfirm = document.getElementById('save-confirm');
             document.getElementById('btn-save').addEventListener('click', () => {
-                saveSettings(currentValues());
+                handleLiveChange();
                 saveConfirm.innerText = '✓ Guardado correctamente';
                 setTimeout(() => { saveConfirm.innerText = ''; }, 2000);
             });
