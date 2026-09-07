@@ -62,7 +62,7 @@
 
         /* --- CONTENEDOR DE TEXTOS --- */
         .text-info {
-            width: 72%; /* Muro estricto para evitar cortes curvos sin usar difuminado */
+            width: 72%; /* Muro estricto para evitar cortes curvos */
             display: flex; flex-direction: column;
             align-items: center; text-align: center;
             margin: 0; flex-shrink: 0;
@@ -84,12 +84,12 @@
 
         /* Animación Ping-Pong Acelerada por Hardware */
         .scrolling-text {
-            animation: ping-pong var(--scroll-duration, 4s) ease-in-out infinite alternate;
+            animation: ping-pong var(--scroll-duration, 6s) ease-in-out infinite alternate;
         }
 
         @keyframes ping-pong {
-            0%, 15% { transform: translate3d(0, 0, 0); } 
-            85%, 100% { transform: translate3d(var(--scroll-dist), 0, 0); } 
+            0%, 10% { transform: translate3d(0, 0, 0); } 
+            90%, 100% { transform: translate3d(var(--scroll-dist), 0, 0); } 
         }
 
         /* --- PANTALLA DE CONFIGURACIÓN --- */
@@ -177,7 +177,7 @@
             root.setProperty('--logo-size', settings.logoSize + 'px');
         }
 
-        // --- SISTEMA INTELIGENTE DE TEXTO (ENCOGER Y SCROLL ÁGIL) ---
+        // --- SISTEMA INTELIGENTE DE TEXTO (ENCOGER Y SCROLL SUAVE) ---
         function autoFitAndScroll() {
             const titleEl = document.getElementById('title');
             const artistEl = document.getElementById('artist');
@@ -205,7 +205,8 @@
                     const scrollDist = parentWidth - textWidth - 5; 
                     el.style.setProperty('--scroll-dist', scrollDist + 'px');
                     
-                    const duration = 1.2 + (Math.abs(scrollDist) / 50);
+                    // Velocidad reducida para un renderizado más limpio a 40Hz
+                    const duration = 2.5 + (Math.abs(scrollDist) / 25);
                     el.style.setProperty('--scroll-duration', duration + 's');
                     
                     el.classList.add('scrolling-text');
