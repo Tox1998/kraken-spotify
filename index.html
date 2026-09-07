@@ -50,7 +50,7 @@
             border-radius: var(--album-radius, 18px);
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
             flex-shrink: 1; 
-            overflow: hidden; /* Mantiene los bordes redondeados al hacer transición */
+            overflow: hidden;
         }
         .album-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -60,9 +60,10 @@
         }
         .album-layer.active { opacity: 1; }
 
-        /* --- CONTENEDOR DE TEXTOS TEXTOS --- */
+        /* --- CONTENEDOR DE TEXTOS --- */
         .text-info {
-            width: 95%; display: flex; flex-direction: column;
+            width: 80%; /* Muro de seguridad lateral para pantallas circulares */
+            display: flex; flex-direction: column;
             align-items: center; text-align: center;
             margin: 0; flex-shrink: 0;
         }
@@ -72,14 +73,14 @@
             width: 100%; position: relative; overflow: hidden;
         }
         
-        /* Efecto de difuminado en los bordes cuando el texto hace scroll */
+        /* Efecto de difuminado suave en los bordes para el texto largo */
         .is-overflowing {
-            -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 5%, black 95%, transparent 100%);
-            mask-image: linear-gradient(90deg, transparent 0%, black 5%, black 95%, transparent 100%);
+            -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%);
+            mask-image: linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%);
         }
 
         .song-title, .song-artist {
-            display: inline-block; /* Requerido para medir y animar */
+            display: inline-block; 
             margin: 0; white-space: nowrap; width: max-content;
         }
 
@@ -92,8 +93,8 @@
         }
 
         @keyframes ping-pong {
-            0%, 20% { transform: translateX(0); } /* Pausa al inicio */
-            80%, 100% { transform: translateX(var(--scroll-dist)); } /* Desliza y pausa al final */
+            0%, 20% { transform: translateX(0); } 
+            80%, 100% { transform: translateX(var(--scroll-dist)); } 
         }
 
         /* --- PANTALLA DE CONFIGURACIÓN --- */
@@ -200,7 +201,7 @@
                 el.style.fontSize = requestedSize + 'rem';
                 
                 let currentSize = requestedSize;
-                const minSize = requestedSize * 0.70; // Solo encoge hasta un 30% como máximo
+                const minSize = requestedSize * 0.85; // Prioriza mantener el tamaño legible, encoge poco (15%) antes de hacer scroll
                 
                 // Fase 1: Encoger ligeramente si es posible
                 while (el.scrollWidth > el.parentElement.clientWidth && currentSize > minSize) {
@@ -232,7 +233,6 @@
                 processText(artistEl, settings.artistSize / 10);
             }, 50);
         }
-
 
         if (isKraken) {
             document.getElementById('config-screen').style.display = 'none';
@@ -268,11 +268,9 @@
                 preloader.onload = () => {
                     const nextLayer = activeLayer === 'a' ? 'b' : 'a';
                     
-                    // Prepara las imágenes en las capas ocultas
                     document.getElementById('album-art-' + nextLayer).style.backgroundImage = `url('${newUrl}')`;
                     document.getElementById('bg-blur-' + nextLayer).style.backgroundImage = `url('${newUrl}')`;
                     
-                    // Ejecuta el fundido (fade)
                     document.getElementById('album-art-' + nextLayer).classList.add('active');
                     document.getElementById('bg-blur-' + nextLayer).classList.add('active');
                     document.getElementById('album-art-' + activeLayer).classList.remove('active');
@@ -320,8 +318,8 @@
                         if (titleEl.innerText !== songTitle) {
                             titleEl.innerText = songTitle;
                             artistEl.innerText = artistName;
-                            updateImagesSmoothly(albumImage); // Detona la transición
-                            autoFitAndScroll(); // Calcula si el texto necesita deslizarse
+                            updateImagesSmoothly(albumImage); 
+                            autoFitAndScroll(); 
                         }
                     }
                 } catch (error) { console.log(error); }
