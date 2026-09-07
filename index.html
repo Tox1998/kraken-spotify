@@ -17,6 +17,12 @@
             overflow: hidden;
         }
 
+        .display-stage {
+            position: relative; width: 100%; height: 100%; flex-shrink: 0;
+            overflow: hidden; isolation: isolate; background: #121212;
+            --display-scale: 1;
+        }
+
         /* --- DOBLE CAPA DE FONDO --- */
         .bg-layer {
             position: absolute; top: -20%; left: -20%; width: 140%; height: 140%;
@@ -32,7 +38,7 @@
             position: relative; z-index: 2;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center; 
-            gap: var(--element-gap, 6%); 
+            gap: var(--fitted-gap, var(--element-gap, 6%));
             width: 100%; height: 100%; padding: 10%; 
         }
 
@@ -45,11 +51,11 @@
         /* --- DOBLE CAPA DE PORTADA --- */
         .album-wrapper {
             width: var(--album-size, 45%);
-            max-width: 65%; aspect-ratio: 1 / 1;
+            max-width: 70%; aspect-ratio: 1 / 1;
             position: relative;
             border-radius: var(--album-radius, 18px);
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
-            flex-shrink: 1; 
+            flex-shrink: 0;
             overflow: hidden;
         }
         .album-layer {
@@ -62,10 +68,10 @@
 
         /* --- CONTENEDOR DE TEXTOS --- */
         .text-info {
-            width: 72%; /* Muro estricto para evitar cortes curvos */
+            width: 72%; /* Muro estricto para evitar cortes curvos sin usar difuminado */
             display: flex; flex-direction: column;
             align-items: center; text-align: center;
-            margin: 0; flex-shrink: 0;
+            margin: 0; flex-shrink: 0; position: relative;
         }
 
         /* Ventana que oculta el texto excedente con corte limpio */
@@ -74,22 +80,50 @@
         }
 
         .song-title, .song-artist {
-            display: inline-block; 
-            margin: 0; white-space: nowrap; width: max-content;
-            will-change: transform; /* Sincroniza con el GPU para 40Hz perfectos */
+            display: block;
+            margin: 0 auto; white-space: nowrap; width: max-content;
+            line-height: 1.25;
         }
 
-        .song-title { font-weight: 700; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        .song-artist { font-weight: 400; color: #d1d1d1; margin-top: 6px; }
+        .song-title { font-size: var(--title-size, 1.6rem); font-weight: 700; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .song-artist { font-size: var(--artist-size, 1.1rem); font-weight: 400; color: #d1d1d1; margin-top: calc(6px * var(--display-scale)); }
+        .song-artist:empty { margin-top: 0; }
 
         /* Animación Ping-Pong Acelerada por Hardware */
         .scrolling-text {
-            animation: ping-pong var(--scroll-duration, 6s) ease-in-out infinite alternate;
+            margin-left: 0; margin-right: 0;
+            will-change: transform; /* Solo los textos que se desplazan reservan una capa. */
+            animation: ping-pong var(--scroll-duration, 4s) ease-in-out infinite alternate;
         }
 
         @keyframes ping-pong {
-            0%, 10% { transform: translate3d(0, 0, 0); } 
-            90%, 100% { transform: translate3d(var(--scroll-dist), 0, 0); } 
+            0%, 15% { transform: translate3d(0, 0, 0); } 
+            85%, 100% { transform: translate3d(var(--scroll-dist), 0, 0); } 
+        }
+
+        /* Estado discreto, sin mover la portada ni el título al pausar. */
+        .playback-status {
+            position: absolute; top: calc(100% + 10px * var(--display-scale));
+            left: 0; width: 100%; display: flex; align-items: center;
+            justify-content: center; gap: calc(7px * var(--display-scale));
+            font-size: calc(0.875rem * var(--display-scale)); line-height: 1.25;
+            color: #d1d1d1; letter-spacing: 0.02em; visibility: hidden;
+        }
+        .playback-status[data-visible="true"] { visibility: visible; }
+        .status-mark { display: block; width: calc(5px * var(--display-scale)); height: calc(5px * var(--display-scale)); border-radius: 50%; background: currentColor; }
+        .display-stage[data-state="paused"] .status-mark {
+            width: calc(7px * var(--display-scale)); height: calc(9px * var(--display-scale));
+            border-radius: 0; background: none;
+            border-left: calc(2px * var(--display-scale)) solid currentColor;
+            border-right: calc(2px * var(--display-scale)) solid currentColor;
+        }
+        .display-stage[data-has-track="false"] .album-wrapper { display: none; }
+        .display-stage[data-has-track="false"] .bg-layer { opacity: 0; }
+        .display-stage[data-has-track="false"] .text-info { width: 85%; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .bg-layer, .album-layer { transition: none; }
+            .scrolling-text { animation: none; will-change: auto; }
         }
 
         /* --- PANTALLA DE CONFIGURACIÓN --- */
@@ -99,24 +133,37 @@
             font-family: 'Inter', sans-serif; overflow-y: auto; max-height: 100vh;
         }
         .config-screen h2 { margin: 0 0 4px 0; font-size: 1.3rem; }
+        .config-preview { margin: 0 0 4px; }
+        .preview-window {
+            position: relative; width: min(100%, 260px); aspect-ratio: 1;
+            margin: 0 auto; border-radius: 50%; overflow: hidden;
+            box-shadow: 0 0 0 1px #ffffff1a, 0 12px 36px #00000066;
+            background: #121212;
+        }
+        .preview-window .display-stage { position: absolute; top: 0; left: 0; transform-origin: top left; }
+        .config-preview figcaption { margin-top: 14px; text-align: center; font-size: 0.875rem; color: #aaa; }
         .config-row { display: flex; flex-direction: column; gap: 4px; }
-        .config-row label { display: flex; justify-content: space-between; font-size: 0.85rem; color: #d1d1d1; }
-        .config-row input[type="range"] { width: 100%; }
+        .config-row label { display: flex; justify-content: space-between; font-size: 0.875rem; color: #d1d1d1; gap: 12px; }
+        .config-row input[type="range"] { width: 100%; accent-color: #1DB954; }
         .config-row input[type="checkbox"] { width: 18px; height: 18px; }
         .config-reset {
             margin-top: 8px; background: #1DB954; color: black; border: none;
             border-radius: 8px; padding: 10px 14px; font-weight: 700; cursor: pointer;
         }
         .config-reset:hover { opacity: 0.9; }
+        .save-confirm { text-align: center; color: #aaa; font-size: 0.875rem; min-height: 18px; margin: 0; }
+        .save-confirm[data-state="saved"] { color: #79ce98; }
+        .save-confirm[data-state="error"] { color: #e5bba1; }
     </style>
 </head>
 <body>
 
+    <div class="display-stage" id="display-stage" data-state="connecting" data-has-track="false">
     <div id="bg-blur-a" class="bg-layer active"></div>
     <div id="bg-blur-b" class="bg-layer"></div>
 
     <div class="content" id="display-content">
-        <img src="https://storage.googleapis.com/pr-newsroom-wp/1/2018/11/Spotify_Logo_RGB_White.png" alt="Spotify" class="spotify-logo">
+        <img src="https://storage.googleapis.com/pr-newsroom-wp/1/2018/11/Spotify_Logo_RGB_White.png" alt="Spotify" class="spotify-logo" id="spotify-logo">
         
         <div class="album-wrapper">
             <div id="album-art-a" class="album-layer active"></div>
@@ -124,194 +171,394 @@
         </div>
         
         <div class="text-info">
-            <div class="text-window"><p class="song-title" id="title">Cargando...</p></div>
-            <div class="text-window"><p class="song-artist" id="artist">Conectando a Spotify</p></div>
+            <div class="text-window"><p class="song-title" id="title">Conectando</p></div>
+            <div class="text-window"><p class="song-artist" id="artist">Spotify</p></div>
+            <div class="playback-status" id="playback-status" role="status" aria-live="polite" aria-atomic="true">
+                <span class="status-mark" aria-hidden="true"></span><span id="status-label"></span>
+            </div>
         </div>
+    </div>
     </div>
 
     <div class="config-screen" id="config-screen" style="display:none;">
         <h2>Ajustes de la pantalla</h2>
-        <div class="config-row"><label><span>Tamaño de la portada</span><span id="val-album-size">45%</span></label><input type="range" id="ctrl-album-size" min="20" max="70" value="45"></div>
-        <div class="config-row"><label><span>Redondeo de bordes</span><span id="val-album-radius">18px</span></label><input type="range" id="ctrl-album-radius" min="0" max="60" value="18"></div>
-        <div class="config-row"><label><span>Espaciado entre elementos</span><span id="val-element-gap">6%</span></label><input type="range" id="ctrl-element-gap" min="0" max="20" value="6"></div>
-        <div class="config-row"><label><span>Tamaño del título</span><span id="val-title-size">1.6rem</span></label><input type="range" id="ctrl-title-size" min="10" max="35" value="16"></div>
-        <div class="config-row"><label><span>Tamaño del artista</span><span id="val-artist-size">1.1rem</span></label><input type="range" id="ctrl-artist-size" min="8" max="24" value="11"></div>
-        <div class="config-row"><label><span>Desenfoque del fondo</span><span id="val-bg-blur">45px</span></label><input type="range" id="ctrl-bg-blur" min="0" max="100" value="45"></div>
-        <div class="config-row"><label><span>Brillo del fondo</span><span id="val-bg-brightness">40%</span></label><input type="range" id="ctrl-bg-brightness" min="10" max="100" value="40"></div>
-        <div class="config-row" style="flex-direction: row; align-items: center; justify-content: space-between; margin-top: 8px;"><span>Mostrar logo de Spotify</span><input type="checkbox" id="ctrl-logo" checked></div>
-        <div class="config-row"><label><span>Tamaño del logo</span><span id="val-logo-size">90px</span></label><input type="range" id="ctrl-logo-size" min="40" max="160" value="90"></div>
-        <button class="config-reset" id="btn-save" style="background:#3b82f6; color:white;">Guardar cambios</button>
+        <figure class="config-preview">
+            <div class="preview-window" id="preview-window" aria-label="Vista previa circular de la pantalla"></div>
+            <figcaption>Vista previa · se sincroniza con el Kraken</figcaption>
+        </figure>
+        <div class="config-row"><label for="ctrl-album-size"><span>Tamaño de la portada</span><span id="val-album-size">45%</span></label><input type="range" id="ctrl-album-size" min="20" max="70" value="45"></div>
+        <div class="config-row"><label for="ctrl-album-radius"><span>Redondeo de bordes</span><span id="val-album-radius">18px</span></label><input type="range" id="ctrl-album-radius" min="0" max="60" value="18"></div>
+        <div class="config-row"><label for="ctrl-element-gap"><span>Espaciado entre elementos</span><span id="val-element-gap">6%</span></label><input type="range" id="ctrl-element-gap" min="0" max="20" value="6"></div>
+        <div class="config-row"><label for="ctrl-title-size"><span>Tamaño del título</span><span id="val-title-size">1.6rem</span></label><input type="range" id="ctrl-title-size" min="10" max="35" value="16"></div>
+        <div class="config-row"><label for="ctrl-artist-size"><span>Tamaño del artista</span><span id="val-artist-size">1.1rem</span></label><input type="range" id="ctrl-artist-size" min="8" max="24" value="11"></div>
+        <div class="config-row"><label for="ctrl-bg-blur"><span>Desenfoque del fondo</span><span id="val-bg-blur">45px</span></label><input type="range" id="ctrl-bg-blur" min="0" max="100" value="45"></div>
+        <div class="config-row"><label for="ctrl-bg-brightness"><span>Brillo del fondo</span><span id="val-bg-brightness">40%</span></label><input type="range" id="ctrl-bg-brightness" min="10" max="100" value="40"></div>
+        <div class="config-row" style="flex-direction: row; align-items: center; justify-content: space-between; margin-top: 8px;"><label for="ctrl-logo">Mostrar logo de Spotify</label><input type="checkbox" id="ctrl-logo" checked></div>
+        <div class="config-row"><label for="ctrl-logo-size"><span>Tamaño del logo</span><span id="val-logo-size">90px</span></label><input type="range" id="ctrl-logo-size" min="40" max="160" value="90"></div>
         <button class="config-reset" id="btn-reset">Restaurar valores por defecto</button>
-        <p id="save-confirm" style="text-align:center; color:#1DB954; font-size:0.85rem; height:16px; margin:0;"></p>
+        <p id="save-confirm" class="save-confirm" role="status" aria-live="polite">Los cambios se guardan automáticamente</p>
     </div>
 
     <script>
         const params = new URLSearchParams(window.location.search);
         const isKraken = params.get('kraken') === '1';
         const CONFIG_KEY = 'kraken_display_settings';
-
+        const PREVIEW_KEY = 'kraken_display_preview_v1';
+        const PREVIEW_MAX_AGE = 20000;
         const DEFAULT_SETTINGS = {
             albumSize: 45, albumRadius: 18, elementGap: 6, titleSize: 16, artistSize: 11,
-            bgBlur: 45, bgBrightness: 40, showLogo: true, logoSize: 90        
+            bgBlur: 45, bgBrightness: 40, showLogo: true, logoSize: 90
         };
+        const SETTING_LIMITS = {
+            albumSize: [20, 70], albumRadius: [0, 60], elementGap: [0, 20],
+            titleSize: [10, 35], artistSize: [8, 24], bgBlur: [0, 100],
+            bgBrightness: [10, 100], logoSize: [40, 160]
+        };
+        const stage = document.getElementById('display-stage');
+        const content = document.getElementById('display-content');
+        const titleEl = document.getElementById('title');
+        const artistEl = document.getElementById('artist');
+        const logoEl = document.getElementById('spotify-logo');
+        const albumEl = document.querySelector('.album-wrapper');
+        const textInfo = document.querySelector('.text-info');
+        const statusEl = document.getElementById('playback-status');
+        const statusLabel = document.getElementById('status-label');
+        const previewWindow = document.getElementById('preview-window');
+        let settings = loadSettings();
+        let device = readDevice();
+        let currentTrack = null;
+        let playbackState = 'connecting';
+        let activeLayer = 'a';
+        let currentAlbumUrl = '';
+        let layoutTimer = null;
+        let forceTextFit = false;
+        const textMetrics = new WeakMap();
 
-        function loadSettings() {
-            try {
-                const raw = localStorage.getItem(CONFIG_KEY);
-                return raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : { ...DEFAULT_SETTINGS };
-            } catch (e) { return { ...DEFAULT_SETTINGS }; }
-        }
-
-        function saveSettings(settings) { localStorage.setItem(CONFIG_KEY, JSON.stringify(settings)); }
-
-        function applySettings(settings) {
-            const root = document.documentElement.style;
-            root.setProperty('--album-size', settings.albumSize + '%');
-            root.setProperty('--album-radius', settings.albumRadius + 'px');
-            root.setProperty('--element-gap', settings.elementGap + '%');
-            root.setProperty('--title-size', (settings.titleSize / 10) + 'rem');
-            root.setProperty('--artist-size', (settings.artistSize / 10) + 'rem');
-            root.setProperty('--bg-blur', settings.bgBlur + 'px');
-            root.setProperty('--bg-brightness', (settings.bgBrightness / 100));
-            root.setProperty('--logo-display', settings.showLogo ? 'block' : 'none');
-            root.setProperty('--logo-size', settings.logoSize + 'px');
-        }
-
-        // --- SISTEMA INTELIGENTE DE TEXTO (ENCOGER Y SCROLL SUAVE) ---
-        function autoFitAndScroll() {
-            const titleEl = document.getElementById('title');
-            const artistEl = document.getElementById('artist');
-            if (!titleEl || !artistEl) return;
-
-            const settings = loadSettings();
-
-            function processText(el, requestedSize) {
-                el.classList.remove('scrolling-text');
-                el.style.transform = 'none';
-                el.style.fontSize = requestedSize + 'rem';
-                
-                let currentSize = requestedSize;
-                const minSize = requestedSize * 0.85; 
-                
-                while (el.scrollWidth > el.parentElement.clientWidth && currentSize > minSize) {
-                    currentSize -= 0.1;
-                    el.style.fontSize = currentSize + 'rem';
-                }
-
-                const parentWidth = el.parentElement.clientWidth;
-                const textWidth = el.scrollWidth;
-
-                if (textWidth > parentWidth) {
-                    const scrollDist = parentWidth - textWidth - 5; 
-                    el.style.setProperty('--scroll-dist', scrollDist + 'px');
-                    
-                    // Velocidad reducida para un renderizado más limpio a 40Hz
-                    const duration = 2.5 + (Math.abs(scrollDist) / 25);
-                    el.style.setProperty('--scroll-duration', duration + 's');
-                    
-                    el.classList.add('scrolling-text');
+        function normalizeSettings(value) {
+            const result = { ...DEFAULT_SETTINGS };
+            for (const [key, [min, max]] of Object.entries(SETTING_LIMITS)) {
+                const number = value?.[key];
+                if (typeof number === 'number' && Number.isFinite(number)) {
+                    result[key] = Math.min(max, Math.max(min, number));
                 }
             }
+            if (typeof value?.showLogo === 'boolean') result.showLogo = value.showLogo;
+            return result;
+        }
 
-            setTimeout(() => {
-                processText(titleEl, settings.titleSize / 10);
-                processText(artistEl, settings.artistSize / 10);
-            }, 50);
+        function loadSettings() {
+            try { return normalizeSettings(JSON.parse(localStorage.getItem(CONFIG_KEY))); }
+            catch { return { ...DEFAULT_SETTINGS }; }
+        }
+
+        function positiveNumber(value, fallback) {
+            const number = Number(value);
+            return Number.isFinite(number) && number > 0 ? number : fallback;
+        }
+
+        function readDevice(source = window.nzxt?.v1) {
+            return {
+                width: positiveNumber(source?.width, isKraken ? window.innerWidth : 640),
+                height: positiveNumber(source?.height, isKraken ? window.innerHeight : 640),
+                shape: typeof source?.shape === 'string' ? source.shape : 'circle',
+                targetFps: positiveNumber(source?.targetFps, 30)
+            };
+        }
+
+        function applySettings(updated) {
+            settings = normalizeSettings(updated);
+            // La vista previa usa la resolución del Kraken antes de reducirse visualmente.
+            const scale = Math.min(device.width, device.height) / 640;
+            const root = stage.style;
+            root.setProperty('--display-scale', scale);
+            root.setProperty('--album-size', settings.albumSize + '%');
+            root.setProperty('--album-radius', settings.albumRadius * scale + 'px');
+            root.setProperty('--element-gap', settings.elementGap + '%');
+            root.setProperty('--title-size', settings.titleSize / 10 * scale + 'rem');
+            root.setProperty('--artist-size', settings.artistSize / 10 * scale + 'rem');
+            root.setProperty('--bg-blur', settings.bgBlur * scale + 'px');
+            root.setProperty('--bg-brightness', settings.bgBrightness / 100);
+            root.setProperty('--logo-display', settings.showLogo ? 'block' : 'none');
+            root.setProperty('--logo-size', settings.logoSize * scale + 'px');
+            autoFitAndScroll();
+        }
+
+        function fitText(el, requestedSize, force) {
+            const width = el.parentElement.clientWidth;
+            if (!width) return;
+            const signature = JSON.stringify([el.textContent, requestedSize, width]);
+            if (!force && textMetrics.get(el) === signature) return;
+            textMetrics.set(el, signature);
+            el.classList.remove('scrolling-text');
+            el.style.fontSize = requestedSize + 'rem';
+            if (el.scrollWidth > width) {
+                let low = requestedSize * 0.85;
+                let high = requestedSize;
+                // Búsqueda acotada: nunca reduce más del 15% solicitado.
+                for (let i = 0; i < 6; i++) {
+                    const mid = (low + high) / 2;
+                    el.style.fontSize = mid + 'rem';
+                    if (el.scrollWidth > width) high = mid;
+                    else low = mid;
+                }
+                el.style.fontSize = low + 'rem';
+            }
+            const distance = width - el.scrollWidth;
+            if (distance < -1) {
+                el.style.setProperty('--scroll-dist', distance - 5 + 'px');
+                const scale = Math.min(device.width, device.height) / 640;
+                el.style.setProperty('--scroll-duration', 1.2 + Math.abs(distance - 5) / (50 * scale) + 's');
+                el.classList.add('scrolling-text');
+            }
+        }
+
+        function fitAlbumAndSpacing() {
+            const css = getComputedStyle(content);
+            const width = content.clientWidth - parseFloat(css.paddingLeft) - parseFloat(css.paddingRight);
+            const height = content.clientHeight - parseFloat(css.paddingTop) - parseFloat(css.paddingBottom);
+            if (width <= 0 || height <= 0) return;
+            const logoHeight = settings.showLogo ? logoEl.offsetHeight : 0;
+            const gapCount = currentTrack ? (settings.showLogo ? 2 : 1) : (settings.showLogo ? 1 : 0);
+            const requestedGap = height * settings.elementGap / 100;
+            const minimumAlbum = currentTrack ? width * 0.2 : 0;
+            const gapRoom = Math.max(0, height - logoHeight - textInfo.offsetHeight - minimumAlbum);
+            const gap = gapCount ? Math.min(requestedGap, gapRoom / gapCount) : 0;
+            stage.style.setProperty('--fitted-gap', gap + 'px');
+            if (currentTrack) {
+                const room = height - logoHeight - textInfo.offsetHeight - gap * gapCount;
+                const size = Math.max(0, Math.min(width * settings.albumSize / 100, room));
+                // Conserva el cuadrado aunque se combinen tamaños y espacios grandes.
+                albumEl.style.width = size + 'px';
+                albumEl.style.height = size + 'px';
+            }
+        }
+
+        function autoFitAndScroll(force = false) {
+            forceTextFit ||= force;
+            if (layoutTimer !== null) return;
+            // Agrupa cambios sin depender de rAF: CAM usa un navegador oculto para el LCD.
+            // targetFps limita estos recálculos; no promete la frecuencia real del panel.
+            const delay = Math.max(16, Math.ceil(1000 / Math.min(120, device.targetFps)));
+            layoutTimer = setTimeout(() => {
+                layoutTimer = null;
+                if (!isKraken) {
+                    stage.style.width = device.width + 'px';
+                    stage.style.height = device.height + 'px';
+                    previewWindow.style.aspectRatio = device.width + ' / ' + device.height;
+                    stage.style.transform = 'scale(' + previewWindow.clientWidth / device.width + ')';
+                }
+                const scale = Math.min(device.width, device.height) / 640;
+                fitText(titleEl, settings.titleSize / 10 * scale, forceTextFit);
+                fitText(artistEl, settings.artistSize / 10 * scale, forceTextFit);
+                forceTextFit = false;
+                fitAlbumAndSpacing();
+            }, delay);
+        }
+
+        // Se conserva el sistema original de portadas; sus mejoras quedan pendientes.
+        function updateImagesSmoothly(newUrl) {
+            if (newUrl === currentAlbumUrl || !newUrl) return;
+            const preloader = new Image();
+            preloader.src = newUrl;
+            preloader.onload = () => {
+                const nextLayer = activeLayer === 'a' ? 'b' : 'a';
+                document.getElementById('album-art-' + nextLayer).style.backgroundImage = `url('${newUrl}')`;
+                document.getElementById('bg-blur-' + nextLayer).style.backgroundImage = `url('${newUrl}')`;
+                document.getElementById('album-art-' + nextLayer).classList.add('active');
+                document.getElementById('bg-blur-' + nextLayer).classList.add('active');
+                document.getElementById('album-art-' + activeLayer).classList.remove('active');
+                document.getElementById('bg-blur-' + activeLayer).classList.remove('active');
+                activeLayer = nextLayer;
+                currentAlbumUrl = newUrl;
+            };
+        }
+
+        function renderPlayback(state, track = currentTrack) {
+            const trackChanged = track?.key !== currentTrack?.key;
+            const layoutChanged = trackChanged || state !== playbackState;
+            currentTrack = track;
+            playbackState = state;
+            stage.dataset.state = state;
+            stage.dataset.hasTrack = String(Boolean(track));
+            if (track) {
+                if (trackChanged) {
+                    titleEl.textContent = track.title;
+                    artistEl.textContent = track.artist;
+                    updateImagesSmoothly(track.albumImage);
+                }
+            } else {
+                titleEl.textContent = state === 'idle' ? 'Sin reproducción' : state === 'connecting' ? 'Conectando' : 'Reconectando';
+                artistEl.textContent = state === 'idle' ? '' : 'Spotify';
+            }
+            const label = track && state === 'paused' ? 'En pausa' : track && state === 'reconnecting' ? 'Reconectando' : '';
+            if (statusLabel.textContent !== label) statusLabel.textContent = label;
+            statusEl.dataset.visible = String(Boolean(label));
+            if (layoutChanged) autoFitAndScroll();
+        }
+
+        function publishPreview() {
+            // Solo datos visuales; los tokens permanecen en memoria como antes.
+            try {
+                localStorage.setItem(PREVIEW_KEY, JSON.stringify({
+                    version: 1, updatedAt: Date.now(), state: playbackState, track: currentTrack, device
+                }));
+            } catch { /* Un fallo de almacenamiento no interrumpe la reproducción. */ }
         }
 
         if (isKraken) {
-            document.getElementById('config-screen').style.display = 'none';
-            document.getElementById('display-content').style.display = 'flex';
-
-            applySettings(loadSettings());
-
-            window.addEventListener('storage', (event) => {
-                if (event.key === CONFIG_KEY) {
-                    applySettings(loadSettings());
-                    autoFitAndScroll();
-                }
-            });
-
             const TOKEN_WORKER_URL = 'https://spotify-token.enriqueblancolucio.workers.dev/';
+            const PLAYBACK_URL = 'https://api.spotify.com/v1/me/player/currently-playing';
+            const POLL_DELAY = 3000;
+            const REQUEST_TIMEOUT = 10000;
+            const MAX_BACKOFF = 60000;
+            const MAX_TIMER_DELAY = 2147483647;
             let accessToken = null;
             let tokenExpiresAt = 0;
-            let activeLayer = 'a';
-            let currentAlbumUrl = '';
-            const titleEl = document.getElementById('title');
-            const artistEl = document.getElementById('artist');
+            let tokenRefresh = null;
+            let pollTimer = null;
+            let pollInFlight = false;
+            let stopped = false;
+            let failures = 0;
+            let rateLimitUntil = 0;
+            const requests = new Set();
 
-            function updateImagesSmoothly(newUrl) {
-                if (newUrl === currentAlbumUrl || !newUrl) return;
-                const preloader = new Image();
-                preloader.src = newUrl;
-                preloader.onload = () => {
-                    const nextLayer = activeLayer === 'a' ? 'b' : 'a';
-                    document.getElementById('album-art-' + nextLayer).style.backgroundImage = `url('${newUrl}')`;
-                    document.getElementById('bg-blur-' + nextLayer).style.backgroundImage = `url('${newUrl}')`;
-                    document.getElementById('album-art-' + nextLayer).classList.add('active');
-                    document.getElementById('bg-blur-' + nextLayer).classList.add('active');
-                    document.getElementById('album-art-' + activeLayer).classList.remove('active');
-                    document.getElementById('bg-blur-' + activeLayer).classList.remove('active');
-                    activeLayer = nextLayer;
-                    currentAlbumUrl = newUrl;
-                };
+            function retryAfterMilliseconds(value) {
+                if (value !== null && value.trim() !== '') {
+                    const seconds = Number(value);
+                    if (Number.isFinite(seconds) && seconds >= 0) return Math.ceil(seconds * 1000);
+                    const date = Date.parse(value);
+                    if (Number.isFinite(date)) return Math.max(0, date - Date.now());
+                }
+                return MAX_BACKOFF;
             }
 
-            async function refreshAccessToken() {
+            async function requestJSON(url, options = {}) {
+                const controller = new AbortController();
+                requests.add(controller);
+                const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
                 try {
-                    const response = await fetch(TOKEN_WORKER_URL);
-                    const data = await response.json();
-                    if (data.access_token) {
-                        accessToken = data.access_token;
-                        tokenExpiresAt = Date.now() + (data.expires_in - 60) * 1000;
+                    const response = await fetch(url, { ...options, cache: 'no-store', signal: controller.signal });
+                    if (!response.ok) {
+                        const error = new Error('HTTP ' + response.status);
+                        error.status = response.status;
+                        if (response.status === 429) {
+                            error.retryAfterMs = retryAfterMilliseconds(response.headers.get('Retry-After'));
+                            rateLimitUntil = Math.max(rateLimitUntil, Date.now() + error.retryAfterMs);
+                        }
+                        throw error;
                     }
-                } catch (error) { console.log(error); }
+                    return response.status === 204 ? null : await response.json();
+                } finally {
+                    clearTimeout(timeout);
+                    requests.delete(controller);
+                }
             }
 
             async function ensureValidToken() {
-                if (!accessToken || Date.now() >= tokenExpiresAt) await refreshAccessToken();
+                if (accessToken && Date.now() < tokenExpiresAt) return;
+                if (!tokenRefresh) {
+                    tokenRefresh = (async () => {
+                        const data = await requestJSON(TOKEN_WORKER_URL);
+                        const expiresIn = Number(data?.expires_in);
+                        if (typeof data?.access_token !== 'string' || !data.access_token || !Number.isFinite(expiresIn) || expiresIn <= 0) {
+                            throw new Error('Respuesta de autenticación incompleta');
+                        }
+                        accessToken = data.access_token;
+                        tokenExpiresAt = Date.now() + (expiresIn - Math.min(60, expiresIn / 10)) * 1000;
+                    })();
+                }
+                try { await tokenRefresh; }
+                finally { tokenRefresh = null; }
             }
 
             async function getCurrentlyPlaying() {
-                try {
+                // Un único reintento inmediato con token nuevo si Spotify devuelve 401.
+                for (let attempt = 0; attempt < 2; attempt++) {
                     await ensureValidToken();
-                    if (!accessToken) return;
-
-                    const response = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    });
-
-                    if (response.status === 204) return;
-                    if (response.status === 401) { accessToken = null; return; }
-
-                    const data = await response.json();
-
-                    if (data && data.item) {
-                        const songTitle = data.item.name;
-                        const artistName = data.item.artists.map(a => a.name).join(', ');
-                        const albumImage = data.item.album.images[0].url;
-
-                        if (titleEl.innerText !== songTitle) {
-                            titleEl.innerText = songTitle;
-                            artistEl.innerText = artistName;
-                            updateImagesSmoothly(albumImage); 
-                            autoFitAndScroll(); 
+                    let data;
+                    try {
+                        data = await requestJSON(PLAYBACK_URL, { headers: { Authorization: `Bearer ${accessToken}` } });
+                    } catch (error) {
+                        if (error.status === 401) {
+                            accessToken = null;
+                            tokenExpiresAt = 0;
+                            if (attempt === 0) continue;
                         }
+                        throw error;
                     }
-                } catch (error) { console.log(error); }
+                    if (!data?.item) return { state: 'idle', track: null };
+                    const songTitle = data.item.name;
+                    const artistName = data.item.artists.map(a => a.name).join(', ');
+                    const albumImage = data.item.album.images[0].url;
+                    return {
+                        state: data.is_playing ? 'playing' : 'paused',
+                        track: {
+                            key: data.item.uri || data.item.id || JSON.stringify([songTitle, artistName, albumImage]),
+                            title: songTitle, artist: artistName, albumImage
+                        }
+                    };
+                }
             }
 
-            getCurrentlyPlaying();
-            setInterval(getCurrentlyPlaying, 3000);
+            function schedulePoll(delay) {
+                clearTimeout(pollTimer);
+                if (stopped) return;
+                const dueAt = Math.max(Date.now() + delay, rateLimitUntil);
+                function waitUntilDue() {
+                    if (stopped) return;
+                    const remaining = dueAt - Date.now();
+                    if (remaining > 0) pollTimer = setTimeout(waitUntilDue, Math.min(remaining, MAX_TIMER_DELAY));
+                    else void pollPlayback();
+                }
+                pollTimer = setTimeout(waitUntilDue, Math.max(0, Math.min(dueAt - Date.now(), MAX_TIMER_DELAY)));
+            }
 
+            async function pollPlayback() {
+                if (stopped || pollInFlight) return;
+                if (Date.now() < rateLimitUntil) { schedulePoll(0); return; }
+                pollInFlight = true;
+                let nextDelay = POLL_DELAY;
+                try {
+                    const result = await getCurrentlyPlaying();
+                    if (stopped) return;
+                    failures = 0;
+                    device = readDevice();
+                    applySettings(settings);
+                    renderPlayback(result.state, result.track);
+                    publishPreview();
+                } catch (error) {
+                    if (stopped) return;
+                    failures = Math.min(failures + 1, 6);
+                    nextDelay = error.status === 429
+                        ? Math.max(POLL_DELAY, error.retryAfterMs)
+                        : Math.min(MAX_BACKOFF, POLL_DELAY * 2 ** (failures - 1));
+                    renderPlayback('reconnecting');
+                    publishPreview();
+                    console.warn('Spotify: reintento pendiente.', error.status || error.name);
+                } finally {
+                    pollInFlight = false;
+                    if (!stopped) schedulePoll(nextDelay);
+                }
+            }
+
+            window.addEventListener('storage', event => {
+                if (event.key === CONFIG_KEY || event.key === null) applySettings(loadSettings());
+            });
+            // No se suspende por document.hidden: el navegador del LCD está oculto en CAM.
+            window.addEventListener('online', () => { if (!pollInFlight) schedulePoll(0); });
+            window.addEventListener('offline', () => { renderPlayback('reconnecting'); publishPreview(); });
+            window.addEventListener('pagehide', () => {
+                stopped = true;
+                clearTimeout(pollTimer);
+                for (const controller of requests) controller.abort();
+            });
+            window.addEventListener('pageshow', event => {
+                if (event.persisted) { stopped = false; schedulePoll(0); }
+            });
+            void pollPlayback();
         } else {
-            // Lógica Menú de Ajustes
-            document.getElementById('display-content').style.display = 'none';
             document.getElementById('config-screen').style.display = 'flex';
-            document.getElementById('bg-blur-a').style.display = 'none';
-            document.getElementById('bg-blur-b').style.display = 'none';
-
-            const settings = loadSettings();
+            previewWindow.appendChild(stage);
             const controls = {
                 albumSize: document.getElementById('ctrl-album-size'),
                 albumRadius: document.getElementById('ctrl-album-radius'),
@@ -323,77 +570,121 @@
                 showLogo: document.getElementById('ctrl-logo'),
                 logoSize: document.getElementById('ctrl-logo-size')
             };
-
             const labels = {
-                albumSize: document.getElementById('val-album-size'),
-                albumRadius: document.getElementById('val-album-radius'),
-                elementGap: document.getElementById('val-element-gap'),
-                titleSize: document.getElementById('val-title-size'),
-                artistSize: document.getElementById('val-artist-size'),
-                bgBlur: document.getElementById('val-bg-blur'),
-                bgBrightness: document.getElementById('val-bg-brightness'),
-                logoSize: document.getElementById('val-logo-size')
+                albumSize: ['val-album-size', value => value + '%'],
+                albumRadius: ['val-album-radius', value => value + 'px'],
+                elementGap: ['val-element-gap', value => value + '%'],
+                titleSize: ['val-title-size', value => value / 10 + 'rem'],
+                artistSize: ['val-artist-size', value => value / 10 + 'rem'],
+                bgBlur: ['val-bg-blur', value => value + 'px'],
+                bgBrightness: ['val-bg-brightness', value => value + '%'],
+                logoSize: ['val-logo-size', value => value + 'px']
             };
+            const saveConfirm = document.getElementById('save-confirm');
+            let saveTimer = null;
+            let previewExpiry = null;
 
-            function refreshLabels(s) {
-                labels.albumSize.innerText = s.albumSize + '%';
-                labels.albumRadius.innerText = s.albumRadius + 'px';
-                labels.elementGap.innerText = s.elementGap + '%';
-                labels.titleSize.innerText = (s.titleSize / 10) + 'rem';
-                labels.artistSize.innerText = (s.artistSize / 10) + 'rem';
-                labels.bgBlur.innerText = s.bgBlur + 'px';
-                labels.bgBrightness.innerText = s.bgBrightness + '%';
-                labels.logoSize.innerText = s.logoSize + 'px';
+            function refreshControls() {
+                for (const [key, control] of Object.entries(controls)) {
+                    if (key === 'showLogo') control.checked = settings[key];
+                    else control.value = settings[key];
+                }
+                refreshLabels();
             }
 
-            controls.albumSize.value = settings.albumSize;
-            controls.albumRadius.value = settings.albumRadius;
-            controls.elementGap.value = settings.elementGap;
-            controls.titleSize.value = settings.titleSize;
-            controls.artistSize.value = settings.artistSize;
-            controls.bgBlur.value = settings.bgBlur;
-            controls.bgBrightness.value = settings.bgBrightness;
-            controls.showLogo.checked = settings.showLogo;
-            controls.logoSize.value = settings.logoSize;
-            refreshLabels(settings);
+            function refreshLabels() {
+                for (const [key, [id, format]] of Object.entries(labels)) {
+                    document.getElementById(id).textContent = format(settings[key]);
+                }
+            }
+
+            function flushSettings() {
+                clearTimeout(saveTimer);
+                saveTimer = null;
+                try {
+                    localStorage.setItem(CONFIG_KEY, JSON.stringify(settings));
+                    saveConfirm.dataset.state = 'saved';
+                    saveConfirm.textContent = 'Guardado automáticamente';
+                } catch {
+                    saveConfirm.dataset.state = 'error';
+                    saveConfirm.textContent = 'No se pudieron guardar los cambios';
+                }
+            }
 
             function handleLiveChange() {
-                const updated = {
-                    albumSize: Number(controls.albumSize.value),
-                    albumRadius: Number(controls.albumRadius.value),
-                    elementGap: Number(controls.elementGap.value),
-                    titleSize: Number(controls.titleSize.value),
-                    artistSize: Number(controls.artistSize.value),
-                    bgBlur: Number(controls.bgBlur.value),
-                    bgBrightness: Number(controls.bgBrightness.value),
-                    showLogo: controls.showLogo.checked,
-                    logoSize: Number(controls.logoSize.value)
-                };
-                refreshLabels(updated);
-                saveSettings(updated);
+                const updated = {};
+                for (const [key, control] of Object.entries(controls)) {
+                    updated[key] = key === 'showLogo' ? control.checked : Number(control.value);
+                }
+                applySettings(updated);
+                refreshLabels();
+                saveConfirm.dataset.state = 'saving';
+                saveConfirm.textContent = 'Guardando…';
+                clearTimeout(saveTimer);
+                saveTimer = setTimeout(flushSettings, 120);
             }
 
-            Object.values(controls).forEach(ctrl => ctrl.addEventListener('input', handleLiveChange));
+            function updatePreview() {
+                clearTimeout(previewExpiry);
+                let snapshot;
+                try { snapshot = JSON.parse(localStorage.getItem(PREVIEW_KEY)); }
+                catch { /* La configuración sigue funcionando sin datos de reproducción. */ }
+                if (snapshot?.version !== 1 || !Number.isFinite(snapshot.updatedAt)) {
+                    renderPlayback('idle', null);
+                    return;
+                }
+                const track = snapshot.track;
+                if (track && !['key', 'title', 'artist', 'albumImage'].every(key => typeof track[key] === 'string')) {
+                    renderPlayback('idle', null);
+                    return;
+                }
+                device = readDevice(snapshot.device);
+                applySettings(settings);
+                const remaining = PREVIEW_MAX_AGE - Math.max(0, Date.now() - snapshot.updatedAt);
+                const state = ['playing', 'paused', 'idle', 'connecting', 'reconnecting'].includes(snapshot.state) ? snapshot.state : 'reconnecting';
+                renderPlayback(remaining > 0 ? state : 'reconnecting', track || null);
+                if (remaining > 0) previewExpiry = setTimeout(updatePreview, remaining + 1);
+            }
 
-            const saveConfirm = document.getElementById('save-confirm');
-            document.getElementById('btn-save').addEventListener('click', () => {
-                handleLiveChange();
-                saveConfirm.innerText = '✓ Guardado correctamente';
-                setTimeout(() => { saveConfirm.innerText = ''; }, 2000);
-            });
-
+            for (const control of Object.values(controls)) {
+                control.addEventListener('input', handleLiveChange);
+                control.addEventListener('change', flushSettings);
+            }
             document.getElementById('btn-reset').addEventListener('click', () => {
-                controls.albumSize.value = DEFAULT_SETTINGS.albumSize;
-                controls.albumRadius.value = DEFAULT_SETTINGS.albumRadius;
-                controls.elementGap.value = DEFAULT_SETTINGS.elementGap;
-                controls.titleSize.value = DEFAULT_SETTINGS.titleSize;
-                controls.artistSize.value = DEFAULT_SETTINGS.artistSize;
-                controls.bgBlur.value = DEFAULT_SETTINGS.bgBlur;
-                controls.bgBrightness.value = DEFAULT_SETTINGS.bgBrightness;
-                controls.showLogo.checked = DEFAULT_SETTINGS.showLogo;
-                controls.logoSize.value = DEFAULT_SETTINGS.logoSize;
-                handleLiveChange();
+                applySettings(DEFAULT_SETTINGS);
+                refreshControls();
+                flushSettings();
             });
+            window.addEventListener('storage', event => {
+                if (event.key === PREVIEW_KEY || event.key === null) updatePreview();
+                if (event.key === CONFIG_KEY || event.key === null) {
+                    clearTimeout(saveTimer);
+                    saveTimer = null;
+                    applySettings(loadSettings());
+                    refreshControls();
+                }
+            });
+            window.addEventListener('pagehide', () => { if (saveTimer !== null) flushSettings(); });
+            refreshControls();
+            updatePreview();
+        }
+
+        applySettings(settings);
+        logoEl.addEventListener('load', () => autoFitAndScroll());
+        window.addEventListener('resize', () => {
+            if (isKraken) { device = readDevice(); applySettings(settings); }
+            autoFitAndScroll();
+        });
+        if (document.fonts) {
+            document.fonts.ready.then(() => autoFitAndScroll(true));
+            document.fonts.addEventListener('loadingdone', () => autoFitAndScroll(true));
+        }
+        if (typeof ResizeObserver !== 'undefined') {
+            const observer = new ResizeObserver(() => autoFitAndScroll());
+            observer.observe(stage);
+            observer.observe(titleEl.parentElement);
+            observer.observe(artistEl.parentElement);
+            if (!isKraken) observer.observe(previewWindow);
         }
     </script>
 </body>
