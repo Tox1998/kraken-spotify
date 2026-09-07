@@ -62,21 +62,15 @@
 
         /* --- CONTENEDOR DE TEXTOS --- */
         .text-info {
-            width: 72%; /* Muro más estricto para evitar cortes curvos */
+            width: 72%; /* Muro estricto para evitar cortes curvos sin usar difuminado */
             display: flex; flex-direction: column;
             align-items: center; text-align: center;
             margin: 0; flex-shrink: 0;
         }
 
-        /* Ventana que oculta el texto excedente */
+        /* Ventana que oculta el texto excedente con corte limpio */
         .text-window {
             width: 100%; position: relative; overflow: hidden;
-        }
-        
-        /* Efecto de difuminado prematuro para suavizar orillas */
-        .is-overflowing {
-            -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 15%, black 85%, transparent 100%);
-            mask-image: linear-gradient(90deg, transparent 0%, black 15%, black 85%, transparent 100%);
         }
 
         .song-title, .song-artist {
@@ -193,7 +187,6 @@
 
             function processText(el, requestedSize) {
                 el.classList.remove('scrolling-text');
-                el.parentElement.classList.remove('is-overflowing');
                 el.style.transform = 'none';
                 el.style.fontSize = requestedSize + 'rem';
                 
@@ -212,11 +205,9 @@
                     const scrollDist = parentWidth - textWidth - 5; 
                     el.style.setProperty('--scroll-dist', scrollDist + 'px');
                     
-                    // Cálculo de velocidad mejorado (más rápido y dinámico)
                     const duration = 1.2 + (Math.abs(scrollDist) / 50);
                     el.style.setProperty('--scroll-duration', duration + 's');
                     
-                    el.parentElement.classList.add('is-overflowing');
                     el.classList.add('scrolling-text');
                 }
             }
@@ -313,6 +304,7 @@
             setInterval(getCurrentlyPlaying, 3000);
 
         } else {
+            // Lógica Menú de Ajustes
             document.getElementById('display-content').style.display = 'none';
             document.getElementById('config-screen').style.display = 'flex';
             document.getElementById('bg-blur-a').style.display = 'none';
